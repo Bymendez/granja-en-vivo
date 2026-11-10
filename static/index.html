@@ -1,0 +1,1065 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Granja sostenible · Big Data</title>
+<meta name="description" content="Maqueta de granja sostenible con ESP32: bases de datos, Data Warehouse, ETL, dashboard de Power BI y monitoreo en tiempo real.">
+<meta name="theme-color" content="#F4F1EA">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232E7D4F'/%3E%3Cpath d='M16 25V14M16 17c0-5 4-8 9-8 0 5-4 8-9 8zm0 0c0-4-3-6-7-6 0 4 3 6 7 6z' stroke='white' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+
+:root{
+  --fondo:#F4F1EA; --tarjeta:#FFFFFF; --borde:#E6E1D5; --tinta:#1F2A24; --tinta2:#5B6560; --tenue:#8A918C;
+  --verde:#2E7D4F; --verde-osc:#1F5A3A; --verde-claro:#E6F0E9;
+  --ocre:#B07812; --ocre-claro:#F6EEDC; --azul:#2F6FA3; --azul-claro:#E5EEF6;
+  --rojo:#B5523B; --rojo-claro:#F8E7E2; --gris-claro:#EFEDE7;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--fondo);color:var(--tinta);font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.contenedor{max-width:1180px;margin:0 auto;padding:28px 24px 40px}
+
+/* encabezado */
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.marca{display:flex;align-items:center;gap:12px}
+.logo{width:40px;height:40px;border-radius:11px;background:var(--verde);display:grid;place-items:center}
+.marca h1{font-size:20px;font-weight:600;margin:0;letter-spacing:-.01em}
+.marca p{margin:0;color:var(--tinta2);font-size:13px}
+.vivo{display:flex;align-items:center;gap:10px;color:var(--tinta2);font-size:13px}
+.reloj{font-variant-numeric:tabular-nums;color:var(--tinta);font-weight:600;font-size:15px}
+.chip{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;background:var(--tarjeta);
+  border:1px solid var(--borde);font-size:12.5px;color:var(--tinta2);white-space:nowrap}
+.punto{width:8px;height:8px;border-radius:50%;background:var(--tenue);flex:none}
+.on .punto{background:#2FA35E;box-shadow:0 0 0 0 rgba(47,163,94,.5);animation:latido 2s infinite}
+.on{color:var(--verde-osc)}
+.off .punto{background:#C9C4B8}
+@keyframes latido{0%{box-shadow:0 0 0 0 rgba(47,163,94,.45)}70%{box-shadow:0 0 0 7px rgba(47,163,94,0)}100%{box-shadow:0 0 0 0 rgba(47,163,94,0)}}
+
+/* rejilla */
+.rejilla{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+@media (max-width:920px){.rejilla{grid-template-columns:minmax(0,1fr)}}
+.tarjeta{background:var(--tarjeta);border:1px solid var(--borde);border-radius:16px;padding:22px 22px 20px;min-width:0}
+.cab{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.cab h2{margin:0;font-size:16px;font-weight:600;display:flex;align-items:center;gap:10px}
+.icono{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none}
+.bov .icono{background:var(--verde-claro);color:var(--verde)}
+.avi .icono{background:var(--ocre-claro);color:var(--ocre)}
+.sub{color:var(--tinta2);font-size:12.5px;font-weight:400}
+
+/* aviso */
+.aviso{display:none;align-items:center;gap:10px;background:var(--rojo-claro);color:#7A2E1F;border-radius:10px;
+  padding:10px 12px;margin-bottom:16px;font-size:13.5px}
+.aviso.ver{display:flex}
+.aviso b{font-weight:600}
+
+/* ultima visita */
+.visita{display:flex;align-items:center;gap:14px;padding:14px;border-radius:12px;background:#FAF8F3;margin-bottom:18px}
+.avatar{width:46px;height:46px;border-radius:50%;background:var(--verde-claro);color:var(--verde-osc);display:grid;
+  place-items:center;font-weight:600;font-size:18px;flex:none}
+.visita .nombre{font-weight:600;font-size:16px}
+.visita .detalle{color:var(--tinta2);font-size:13px}
+.visita .gramos{margin-left:auto;text-align:right}
+.visita .gramos b{font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.visita .gramos span{display:block;color:var(--tinta2);font-size:12px}
+.etiqueta{display:inline-block;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:600;margin-right:6px}
+.e-ok{background:var(--verde-claro);color:var(--verde-osc)}
+.e-mal{background:var(--rojo-claro);color:#8A3523}
+.e-medio{background:var(--ocre-claro);color:#7A5208}
+.e-neutro{background:var(--gris-claro);color:var(--tinta2)}
+.destello{animation:destello 1.2s ease-out}
+.destello-o{animation:destello-o 1.2s ease-out}
+@keyframes destello-o{0%{background:#F6EEDC}100%{background:#FAF8F3}}
+.inst .valor.grande{font-size:20px;line-height:1.1;margin-top:4px}
+@keyframes destello{0%{background:#E3F0E7}100%{background:#FAF8F3}}
+
+/* instrumentos */
+.instrumentos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.inst{border:1px solid var(--borde);border-radius:12px;padding:14px 12px 12px;text-align:center;min-width:0}
+.inst .titulo{font-size:12px;color:var(--tinta2);margin-bottom:8px}
+.inst .valor{font-weight:600;font-size:14px;margin-top:8px}
+.inst .nota{font-size:11.5px;color:var(--tenue)}
+svg text{font-family:inherit}
+.anim{transition:all .6s ease}
+
+/* cifras */
+.cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding-top:16px;border-top:1px solid var(--borde)}
+.cifras.tres{grid-template-columns:repeat(3,minmax(0,1fr))}
+.cifra b{display:block;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.cifra span{font-size:12px;color:var(--tinta2)}
+
+.inst svg{display:block;margin:0 auto}
+.salto{animation:salto .7s ease}
+@keyframes salto{0%{transform:scale(1)}35%{transform:scale(1.25)}100%{transform:scale(1)}}
+
+/* actividad */
+.actividad{margin-top:20px}
+.lista{list-style:none;margin:0;padding:0}
+.lista li{display:flex;align-items:center;gap:12px;padding:10px 2px;border-bottom:1px solid #F0ECE3;font-size:14px}
+.lista li:last-child{border-bottom:none}
+.lista .marca-mod{width:8px;height:8px;border-radius:50%;flex:none}
+.lista .cuando{margin-left:auto;color:var(--tenue);font-size:12.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.lista .mod{font-size:11.5px;color:var(--tenue);width:62px;flex:none}
+.nuevo{animation:entra .5s ease}
+@keyframes entra{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.vacio{color:var(--tenue);font-size:13.5px;text-align:center;padding:26px 8px}
+.espera{color:var(--tenue);font-size:13px;text-align:center;padding:40px 10px}
+footer{margin-top:22px;color:var(--tenue);font-size:12px;text-align:center}
+@media (max-width:520px){
+  .contenedor{padding:18px 14px 30px}
+  .instrumentos{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .cifras{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .lista .mod{display:none}
+}
+
+/* ================= sitio ================= */
+html{scroll-behavior:smooth}
+.barra{position:sticky;top:0;z-index:50;background:rgba(244,241,234,.94);backdrop-filter:saturate(1.4) blur(8px);
+  border-bottom:1px solid var(--borde)}
+.barra-in{max-width:1180px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.barra .marca h1{font-size:16px}
+.barra .marca p{font-size:12px}
+.barra .logo{width:34px;height:34px;border-radius:10px}
+.menu{display:flex;align-items:center;gap:2px;list-style:none;margin:0;padding:0}
+.menu a{display:flex;align-items:center;gap:7px;padding:7px 12px;border-radius:9px;color:var(--tinta2);text-decoration:none;
+  font-size:14px;white-space:nowrap;transition:background .15s,color .15s}
+.menu a:hover{background:rgba(255,255,255,.7);color:var(--tinta)}
+.menu a.activo{background:var(--tarjeta);color:var(--verde-osc);font-weight:600;box-shadow:0 0 0 1px var(--borde)}
+.menu .vivo-punto{width:7px;height:7px;border-radius:50%;background:#2FA35E;animation:latido 2s infinite}
+.hamburguesa{display:none;width:40px;height:40px;border-radius:10px;border:1px solid var(--borde);background:var(--tarjeta);
+  align-items:center;justify-content:center;cursor:pointer;color:var(--tinta)}
+@media (max-width:1060px){
+  .hamburguesa{display:flex}
+  .menu{display:none;position:absolute;left:12px;right:12px;top:62px;flex-direction:column;align-items:stretch;gap:2px;
+    background:var(--tarjeta);border:1px solid var(--borde);border-radius:14px;padding:8px;box-shadow:0 12px 32px rgba(31,42,36,.12)}
+  .menu.abierto{display:flex}
+  .menu a{padding:12px 14px;font-size:15px}
+  .menu a.activo{box-shadow:none;background:var(--verde-claro)}
+}
+.pagina{display:none}
+.pagina.ver{display:block;animation:aparece .35s ease}
+@keyframes aparece{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.encab{margin:8px 0 26px;max-width:760px}
+.antetitulo{color:var(--verde);font-weight:600;font-size:13px;margin-bottom:6px}
+.encab h2{font-size:32px;line-height:1.15;margin:0 0 10px;letter-spacing:-.02em;font-weight:650}
+.encab p{margin:0;color:var(--tinta2);font-size:16.5px;line-height:1.6}
+h3{font-size:17px;margin:0 0 10px;font-weight:600}
+.bloque{margin-top:22px}
+.texto{color:var(--tinta2);font-size:15px;line-height:1.65}
+.texto b{color:var(--tinta)}
+.dos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.tres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:920px){.dos,.tres{grid-template-columns:minmax(0,1fr)}}
+
+/* inicio */
+.heroe{max-width:780px;margin:10px 0 26px}
+.foto-maqueta{position:relative;margin:0 0 22px;background:#F5F5F8;border:1px solid var(--borde);border-radius:20px;overflow:hidden}
+.foto-maqueta img{display:block;width:100%;height:auto}
+.rotulo{position:absolute;top:12px;transform:translateX(-50%);display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.92);
+  border:1px solid var(--borde);border-radius:999px;padding:6px 13px;font-size:13px;font-weight:600;color:var(--tinta);white-space:nowrap;
+  box-shadow:0 4px 14px rgba(31,42,36,.08)}
+.rotulo i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.rotulo small{font-weight:400;color:var(--tinta2);font-size:12.5px}
+@media (max-width:620px){.rotulo{top:8px;font-size:11.5px;padding:4px 9px}.rotulo small{display:none}}
+.heroe h2{font-size:42px;line-height:1.08;letter-spacing:-.025em;margin:0 0 14px;font-weight:650}
+.heroe h2 span{color:var(--verde)}
+.heroe p{font-size:17px;color:var(--tinta2);line-height:1.6;margin:0 0 22px}
+.botones{display:flex;gap:10px;flex-wrap:wrap}
+.boton{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:11px;text-decoration:none;font-weight:600;font-size:14.5px}
+.boton.prim{background:var(--verde);color:#fff}
+.boton.prim:hover{background:var(--verde-osc)}
+.boton.sec{background:var(--tarjeta);color:var(--tinta);border:1px solid var(--borde)}
+.boton.sec:hover{border-color:#CFC8B8}
+.ilus{background:var(--tarjeta);border:1px solid var(--borde);border-radius:20px;padding:18px}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-bottom:22px}
+@media (max-width:920px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--tarjeta);border:1px solid var(--borde);border-radius:14px;padding:16px 16px 14px}
+.kpi b{display:block;font-size:26px;font-weight:650;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.kpi span{color:var(--tinta2);font-size:13px}
+.flujo{display:flex;align-items:stretch;gap:0;overflow-x:auto;padding:4px 2px 8px}
+.paso{flex:1 0 140px;background:#FAF8F3;border:1px solid var(--borde);border-radius:12px;padding:12px 12px 10px;min-width:140px}
+.paso .n{font-size:11.5px;color:var(--verde);font-weight:600}
+.paso b{display:block;font-size:14px;margin:2px 0 2px}
+.paso span{font-size:12.5px;color:var(--tinta2);line-height:1.4;display:block}
+.flecha{flex:0 0 26px;display:grid;place-items:center;color:#B9B3A6}
+.atajos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:920px){.atajos{grid-template-columns:minmax(0,1fr)}}
+.atajo{display:block;text-decoration:none;color:inherit;background:var(--tarjeta);border:1px solid var(--borde);border-radius:14px;
+  padding:16px;transition:border-color .15s,transform .15s}
+.atajo:hover{border-color:#CFC8B8;transform:translateY(-1px)}
+.atajo b{display:flex;align-items:center;justify-content:space-between;font-size:15px;margin-bottom:4px}
+.atajo span{color:var(--tinta2);font-size:13.5px;line-height:1.5}
+.equipo{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+@media (max-width:920px){.equipo{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.miembro{text-align:center;background:#FAF8F3;border-radius:14px;padding:20px 12px 16px}
+.miembro img,.miembro .sinfoto{width:136px;height:136px;border-radius:50%;object-fit:cover;display:block;margin:0 auto 12px;
+  box-shadow:0 0 0 4px #FFFFFF,0 0 0 5px var(--borde)}
+.miembro .sinfoto{background:var(--ocre-claro);color:#7A5208;display:grid;place-items:center;font-size:34px;font-weight:600}
+.miembro b{display:block;font-size:14.5px;line-height:1.35}
+.miembro span{font-size:12.5px;color:var(--tinta2)}
+@media (max-width:520px){.miembro img,.miembro .sinfoto{width:104px;height:104px}}
+/* proyecto */
+.lista-puntos{list-style:none;margin:0;padding:0}
+.lista-puntos li{position:relative;padding:0 0 11px 18px;color:var(--tinta2);font-size:15px;line-height:1.6}
+.lista-puntos li::before{content:"";position:absolute;left:0;top:10px;width:7px;height:7px;border-radius:50%;background:var(--verde)}
+.lista-puntos li b{color:var(--tinta)}
+.etq{font-size:12.5px;font-weight:600;color:var(--tinta2);text-transform:uppercase;letter-spacing:.06em}
+.objetivo-general{background:var(--verde-claro);border-radius:14px;padding:16px 18px}
+.objetivo-general .etq{color:var(--verde-osc)}
+.objetivo-general p{margin:6px 0 0;font-size:16.5px;line-height:1.6;color:#20402D}
+.especificos{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+@media (max-width:1060px){.especificos{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.especificos{grid-template-columns:minmax(0,1fr)}}
+.esp{border:1px solid var(--borde);border-radius:12px;padding:14px}
+.esp .n{width:28px;height:28px;border-radius:8px;background:var(--ocre-claro);color:#7A5208;display:grid;place-items:center;font-weight:650;font-size:14px;margin-bottom:8px}
+.esp p{margin:0;font-size:13.5px;line-height:1.55;color:var(--tinta2)}
+.crisp{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;counter-reset:f}
+@media (max-width:920px){.crisp{grid-template-columns:minmax(0,1fr)}}
+.fase{display:block;text-decoration:none;color:inherit;border:1px solid var(--borde);border-radius:12px;padding:14px 16px;background:#FAF8F3;
+  transition:border-color .15s,transform .15s}
+.fase:hover{border-color:#CFC8B8;transform:translateY(-1px)}
+.fase .n{font-size:12px;font-weight:600;color:var(--azul)}
+.fase b{display:block;font-size:15px;margin:2px 0 6px}
+.fase p{margin:0;font-size:13.5px;line-height:1.55;color:var(--tinta2)}
+.persona{display:flex;align-items:center;gap:10px;background:#FAF8F3;border-radius:12px;padding:10px 14px 10px 10px}
+.persona .avatar{width:38px;height:38px;font-size:14px}
+.persona b{display:block;font-size:14px}
+.persona span{font-size:12.5px;color:var(--tinta2)}
+
+/* maqueta */
+.sistema .ilus{padding:10px;margin-bottom:16px;background:#FAF8F3;border:none}
+.pasos{list-style:none;margin:0;padding:0;counter-reset:p}
+.pasos li{position:relative;padding:0 0 12px 38px;color:var(--tinta2);font-size:14.5px;line-height:1.55;counter-increment:p}
+.pasos li::before{content:counter(p);position:absolute;left:0;top:0;width:26px;height:26px;border-radius:50%;
+  background:var(--verde-claro);color:var(--verde-osc);font-weight:600;font-size:13px;display:grid;place-items:center}
+.avi .pasos li::before{background:var(--ocre-claro);color:#7A5208}
+.pasos li b{color:var(--tinta)}
+.piezas{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.pieza{font-size:12.5px;padding:4px 10px;border-radius:999px;background:var(--gris-claro);color:var(--tinta2)}
+.reglas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+.regla{border:1px solid var(--borde);border-radius:12px;padding:10px 12px}
+.regla b{display:block;font-size:18px;font-weight:650}
+.regla span{font-size:12.5px;color:var(--tinta2)}
+
+/* figuras */
+figure{margin:0}
+.figura{background:var(--tarjeta);border:1px solid var(--borde);border-radius:14px;padding:12px;cursor:zoom-in}
+.figura img{display:block;width:100%;height:auto;border-radius:8px}
+.figura figcaption{font-size:13px;color:var(--tinta2);padding:10px 4px 2px;line-height:1.45}
+.figura figcaption b{color:var(--tinta)}
+.oscura img{background:#1E1E1E}
+.recorte img{height:300px;object-fit:contain;object-position:center top;background:#FAF8F3}
+.oscura.recorte img{background:#1E1E1E}
+.figuras{align-items:start}
+.visor{position:fixed;inset:0;background:rgba(20,26,22,.82);z-index:100;display:none;align-items:center;justify-content:center;padding:24px;cursor:zoom-out}
+.visor.ver{display:flex}
+.visor img{max-width:100%;max-height:100%;border-radius:10px;background:#fff}
+.cifra-tabla{width:100%;border-collapse:collapse;font-size:14px}
+.cifra-tabla th{text-align:left;font-size:12.5px;color:var(--tinta2);font-weight:500;padding:8px 10px;border-bottom:1px solid var(--borde)}
+.cifra-tabla td{padding:9px 10px;border-bottom:1px solid #F0ECE3}
+.cifra-tabla td.n{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.cifra-tabla tr:last-child td{border-bottom:none}
+.barrita{height:6px;border-radius:3px;background:var(--verde);opacity:.85}
+.nota-suave{font-size:13px;color:var(--tenue);margin-top:8px}
+
+/* dashboard */
+.marco{position:relative;width:100%;aspect-ratio:16/9.6;background:var(--tarjeta);border:1px solid var(--borde);border-radius:16px;overflow:hidden}
+.marco iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+@media (max-width:620px){.marco{aspect-ratio:3/4}}
+.paginas-pbi{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+@media (max-width:1060px){.paginas-pbi{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.paginas-pbi{grid-template-columns:minmax(0,1fr)}}
+.pbi{background:var(--tarjeta);border:1px solid var(--borde);border-radius:14px;padding:14px}
+.pbi .n{font-size:12px;color:var(--verde);font-weight:600}
+.pbi b{display:block;font-size:14.5px;margin:2px 0 6px}
+.pbi p{margin:0;font-size:13px;color:var(--tinta2);line-height:1.5}
+.hallazgo{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:1px solid #F0ECE3}
+.hallazgo:last-child{border-bottom:none}
+.hallazgo .num{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-weight:650;flex:none;font-size:14px}
+.hallazgo b{display:block;font-size:15px;margin-bottom:2px}
+.hallazgo p{margin:0;color:var(--tinta2);font-size:14px;line-height:1.55}
+.hallazgo .lim{display:block;font-size:12.5px;color:var(--tenue);margin-top:4px}
+.decision{border-radius:14px;padding:16px 18px;background:var(--verde-claro);color:var(--verde-osc)}
+.decision b{display:block;font-size:15.5px;margin-bottom:4px}
+.decision p{margin:0;font-size:14px;line-height:1.55;color:#2C4A37}
+
+@media (max-width:520px){.heroe h2{font-size:32px}.encab h2{font-size:26px}}
+.vivo-cab{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.vivo-cab .encab{margin:8px 0 0}
+</style>
+</head>
+<body>
+<nav class="barra" aria-label="Secciones">
+  <div class="barra-in">
+    <a href="#inicio" class="marca" style="text-decoration:none;color:inherit">
+      <div class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 21v-9"/><path d="M12 14c0-5 3.5-8 8-8 0 5-3.5 8-8 8z"/><path d="M12 13c0-4-3-6-7-6 0 4 3 6 7 6z"/></svg></div>
+      <div><h1>Granja sostenible</h1><p>Big Data · Grupo 701N</p></div>
+    </a>
+    <button class="hamburguesa" id="hamb" aria-label="Abrir menú" aria-expanded="false" aria-controls="menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <ul class="menu" id="menu">
+      <li><a href="#inicio" data-p="inicio">Inicio</a></li>
+      <li><a href="#proyecto" data-p="proyecto">Proyecto</a></li>
+      <li><a href="#maqueta" data-p="maqueta">La maqueta</a></li>
+      <li><a href="#en-vivo" data-p="en-vivo"><span class="vivo-punto"></span>En vivo</a></li>
+      <li><a href="#bases" data-p="bases">Bases de datos</a></li>
+      <li><a href="#etl" data-p="etl">Data Warehouse y ETL</a></li>
+      <li><a href="#dashboard" data-p="dashboard">Dashboard</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main class="contenedor">
+
+<!-- =============================== INICIO =============================== -->
+<section class="pagina" id="p-inicio">
+  <div class="heroe">
+    <div>
+      <div class="antetitulo">Proyecto de Big Data · Universidad de Cundinamarca</div>
+      <h2>De la maqueta de una granja <span>a decisiones con datos</span></h2>
+      <p>Construimos una granja sostenible a escala con dos sistemas automáticos de alimentación, uno para vacas y otro para gallinas, controlados con ESP32. Sus datos recorren todo el camino de Big Data: bases relacionales, proceso ETL, Data Warehouse y un dashboard en Power BI. Además, se pueden ver en vivo.</p>
+      <div class="botones">
+        <a class="boton prim" href="#en-vivo"><span class="vivo-punto" style="background:#fff"></span>Ver la maqueta en vivo</a>
+        <a class="boton sec" href="#dashboard">Ver el dashboard</a>
+      </div>
+    </div>
+  </div>
+  <figure class="foto-maqueta">
+    <img src="/img/maqueta_foto.webp" alt="Maqueta de la granja sostenible: a la izquierda el sistema bovino de techo rojo y a la derecha el galpón avícola de techo verde" width="2384" height="875">
+    <span class="rotulo" style="left:32%"><i style="background:#D9553F"></i>Sistema bovino</span>
+    <span class="rotulo" style="left:69%"><i style="background:#1E9E7A"></i>Sistema avícola</span>
+  </figure>
+
+  <div class="kpis">
+    <div class="kpi"><b>2 millones</b><span>de registros simulados, 1 millón por módulo</span></div>
+    <div class="kpi"><b>4</b><span>bases en SQL Server: 2 relacionales y 2 Data Warehouse</span></div>
+    <div class="kpi"><b>2</b><span>procesos ETL en Visual Studio (SSIS)</span></div>
+    <div class="kpi"><b>5</b><span>páginas de dashboard en Power BI</span></div>
+    <div class="kpi"><b>99,4 %</b><span>de registros válidos después de la limpieza</span></div>
+  </div>
+
+  <section class="tarjeta">
+    <div class="cab"><h2>El recorrido del dato</h2><span class="sub">cada sección de esta página es un paso</span></div>
+    <div class="flujo">
+      <a class="paso" href="#maqueta" style="text-decoration:none;color:inherit"><div class="n">1 · Maqueta</div><b>ESP32 y sensores</b><span>RFID, báscula, ultrasónico, flotador, infrarrojo y luz</span></a>
+      <div class="flecha">→</div>
+      <a class="paso" href="#bases" style="text-decoration:none;color:inherit"><div class="n">2 · Bases relacionales</div><b>SQL Server</b><span>GranjaBovinos y GranjaAvicola, 1 millón de filas cada una</span></a>
+      <div class="flecha">→</div>
+      <a class="paso" href="#etl" style="text-decoration:none;color:inherit"><div class="n">3 · ETL</div><b>Visual Studio SSIS</b><span>limpia, descarta errores y busca llaves</span></a>
+      <div class="flecha">→</div>
+      <a class="paso" href="#etl" style="text-decoration:none;color:inherit"><div class="n">4 · Data Warehouse</div><b>Modelo estrella</b><span>una tabla de hechos por módulo</span></a>
+      <div class="flecha">→</div>
+      <a class="paso" href="#dashboard" style="text-decoration:none;color:inherit"><div class="n">5 · Power BI</div><b>Dashboard</b><span>indicadores, análisis y decisiones</span></a>
+    </div>
+    <p class="nota-suave" style="margin-top:12px">En paralelo, los ESP32 envían por WiFi lo que pasa en este momento a la sección <a href="#en-vivo" style="color:var(--verde)">En vivo</a>.</p>
+  </section>
+
+  <div class="bloque atajos">
+    <a class="atajo" href="#proyecto"><b>El proyecto <span>→</span></b><span>El problema, la justificación, los objetivos y la metodología CRISP-DM.</span></a>
+    <a class="atajo" href="#maqueta"><b>La maqueta <span>→</span></b><span>Cómo funcionan el comedero de las vacas y el galpón de las gallinas.</span></a>
+    <a class="atajo" href="#bases"><b>Bases de datos <span>→</span></b><span>Las tablas, el modelo relacional y cómo se generó el millón de registros.</span></a>
+    <a class="atajo" href="#etl"><b>Data Warehouse y ETL <span>→</span></b><span>Los modelos estrella y la limpieza de los datos en Visual Studio.</span></a>
+    <a class="atajo" href="#dashboard"><b>Dashboard <span>→</span></b><span>El reporte de Power BI con los conocimientos y las decisiones.</span></a>
+    <a class="atajo" href="#en-vivo"><b>En vivo <span>→</span></b><span>Lo que pasa ahora en la maqueta, enviado por los ESP32.</span></a>
+  </div>
+
+  <section class="tarjeta bloque">
+    <div class="cab"><h2>Equipo</h2><span class="sub">Big Data · Grupo 701N</span></div>
+    <div class="equipo">
+      <div class="miembro"><img src="/img/equipo_almonacid.webp" alt="Elkin Yamith Almonacid Lopez" loading="lazy"><b>Elkin Yamith Almonacid Lopez</b><span>Estudiante</span></div>
+      <div class="miembro"><img src="/img/equipo_cuitiva.webp" alt="Brayan David Cuitiva Umbarila" loading="lazy"><b>Brayan David Cuitiva Umbarila</b><span>Estudiante</span></div>
+      <div class="miembro"><img src="/img/equipo_mendez.webp" alt="Brayan Yair Mendez Rodriguez" loading="lazy"><b>Brayan Yair Mendez Rodriguez</b><span>Estudiante</span></div>
+      <div class="miembro"><div class="sinfoto">EC</div><b>Ing. Edison Gustavo Cañón</b><span>Docente</span></div>
+    </div>
+  </section>
+</section>
+
+<!-- =============================== PROYECTO =============================== -->
+<section class="pagina" id="p-proyecto">
+  <div class="encab">
+    <div class="antetitulo">El proyecto</div>
+    <h2>Granja sostenible <span style="color:var(--verde)">(sistema de alimentación bovino y avícola)</span></h2>
+    <p>Un prototipo que automatiza la alimentación de vacas y gallinas y convierte lo que pasa en la granja en datos útiles para decidir.</p>
+  </div>
+
+  <div class="dos">
+    <section class="tarjeta">
+      <div class="cab"><h2><span class="icono" style="background:var(--rojo-claro);color:#8A3523"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg></span>Planteamiento del problema</h2></div>
+      <div class="texto">
+        <p style="margin-top:0">En muchas granjas pequeñas y medianas la alimentación de los animales se hace a mano y casi nunca queda registrada. Nadie sabe con certeza cuánto comió cada vaca, cuándo se quedó vacía una tolva o un bebedero, ni cuántos huevos produjo cada galpón en el mes.</p>
+        <p>Sin esos datos los problemas se descubren tarde: un animal que deja de comer, un comedero que falla o un galpón que produce menos pasan días sin ser notados. El resultado es alimento y agua desperdiciados, animales mal atendidos y decisiones tomadas por intuición.</p>
+        <p style="margin-bottom:0"><b>Pregunta del proyecto:</b> ¿cómo automatizar la alimentación bovina y avícola de una granja y aprovechar los datos que genera para detectar problemas a tiempo y tomar mejores decisiones?</p>
+      </div>
+    </section>
+    <section class="tarjeta">
+      <div class="cab"><h2><span class="icono" style="background:var(--verde-claro);color:var(--verde)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></svg></span>Justificación</h2></div>
+      <ul class="lista-puntos">
+        <li><b>Menos desperdicio.</b> Servir raciones medidas y llenar el bebedero solo cuando hace falta usa mejor el alimento y el agua: es el sentido de una granja sostenible.</li>
+        <li><b>Registro automático.</b> Los sensores anotan cada visita, ración, llenado y huevo con su fecha y hora, sin depender de que alguien lo escriba.</li>
+        <li><b>Datos que se vuelven decisiones.</b> Con bases de datos, ETL, Data Warehouse y Power BI los registros se transforman en indicadores, alertas y conocimientos.</li>
+        <li><b>Bajo costo y escalable.</b> La maqueta con ESP32 permite probar la solución antes de llevarla a una granja real, y el mismo diseño de datos sirve para más comederos y galpones.</li>
+        <li><b>Aporte académico.</b> Integra en un solo proyecto internet de las cosas, bases de datos, Big Data e inteligencia de negocios.</li>
+      </ul>
+    </section>
+  </div>
+
+  <section class="tarjeta bloque">
+    <div class="cab"><h2><span class="icono" style="background:var(--ocre-claro);color:var(--ocre)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg></span>Objetivos</h2></div>
+    <div class="objetivo-general">
+      <div class="etq">Objetivo general</div>
+      <p>Diseñar e implementar un prototipo de granja sostenible con sistemas automáticos de alimentación bovina y avícola basados en ESP32, junto con una solución de Big Data que almacene, limpie, analice y visualice los datos que generan, para apoyar la toma de decisiones en la granja.</p>
+    </div>
+    <div class="etq" style="margin:18px 0 10px">Objetivos específicos</div>
+    <div class="especificos">
+      <div class="esp"><div class="n">1</div><p>Construir la maqueta con un comedero bovino que identifique a cada vaca por RFID, sirva raciones pesadas y vigile la tolva y el bebedero, y un galpón que alimente por horario y manualmente, cuente los huevos y controle la luz.</p></div>
+      <div class="esp"><div class="n">2</div><p>Diseñar las bases relacionales GranjaBovinos y GranjaAvicola en SQL Server y simular un millón de registros en cada una, con errores y patrones realistas.</p></div>
+      <div class="esp"><div class="n">3</div><p>Implementar en Visual Studio (SSIS) los procesos ETL que limpien los datos y carguen dos Data Warehouse con modelo estrella.</p></div>
+      <div class="esp"><div class="n">4</div><p>Construir un dashboard en Power BI con indicadores generales, análisis univariado, bivariado y multivariado, cinco conocimientos y dos decisiones.</p></div>
+      <div class="esp"><div class="n">5</div><p>Publicar una página web que muestre en tiempo real lo que ocurre en la maqueta y documente todo el proceso.</p></div>
+    </div>
+  </section>
+
+  <section class="tarjeta bloque">
+    <div class="cab"><h2><span class="icono" style="background:var(--azul-claro);color:var(--azul)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3"/><path d="M18 3v4h-4M6 21v-4h4"/></svg></span>Metodología: CRISP-DM</h2><span class="sub">Cross Industry Standard Process for Data Mining</span></div>
+    <p class="texto" style="margin:0 0 16px">CRISP-DM organiza un proyecto de datos en seis fases que se repiten en ciclo. Así la aplicamos en la granja:</p>
+    <div class="crisp">
+      <a class="fase" href="#maqueta"><div class="n">Fase 1</div><b>Comprensión del negocio</b><p>Definimos el problema y las preguntas: ¿qué vaca no come?, ¿qué comedero falla?, ¿qué galpón produce menos? De ahí salen la maqueta y los objetivos.</p></a>
+      <a class="fase" href="#maqueta"><div class="n">Fase 2</div><b>Comprensión de los datos</b><p>Identificamos qué registra cada sensor (visitas, gramos, nivel de tolva, llenados, raciones y huevos) y qué errores puede tener.</p></a>
+      <a class="fase" href="#bases"><div class="n">Fase 3</div><b>Preparación de los datos</b><p>Bases relacionales con un millón de registros por módulo y ETL en SSIS que descarta duplicados y valores imposibles y homologa nombres y razas.</p></a>
+      <a class="fase" href="#etl"><div class="n">Fase 4</div><b>Modelado</b><p>Dos Data Warehouse en estrella y el modelo de Power BI con sus medidas DAX y columnas como temporada y grupo de galpón.</p></a>
+      <a class="fase" href="#dashboard"><div class="n">Fase 5</div><b>Evaluación</b><p>Verificamos origen contra destino (cero diferencias), comprobamos los patrones y escribimos la limitación de cada conocimiento.</p></a>
+      <a class="fase" href="#en-vivo"><div class="n">Fase 6</div><b>Despliegue</b><p>El dashboard publicado en la web y la página en vivo que recibe los datos de los ESP32.</p></a>
+    </div>
+  </section>
+</section>
+
+<!-- =============================== MAQUETA =============================== -->
+<section class="pagina" id="p-maqueta">
+  <div class="encab">
+    <div class="antetitulo">Paso 1 · La maqueta</div>
+    <h2>Dos sistemas automáticos de alimentación</h2>
+    <p>Cada sistema tiene su propio ESP32. El bovino identifica a cada vaca y le sirve una ración pesada; el avícola alimenta a las gallinas por horario, cuenta los huevos y controla la luz del galpón. Todo lo que hacen queda registrado como datos.</p>
+  </div>
+  <figure class="foto-maqueta" data-zoom style="cursor:zoom-in">
+    <img src="/img/maqueta_foto.webp" alt="Maqueta terminada: sistema bovino con techo rojo a la izquierda y galpón avícola con techo verde a la derecha" width="2384" height="875" loading="lazy">
+    <span class="rotulo" style="left:32%"><i style="background:#D9553F"></i>Sistema bovino <small>· techo rojo</small></span>
+    <span class="rotulo" style="left:70%"><i style="background:#1E9E7A"></i>Sistema avícola <small>· techo verde</small></span>
+  </figure>
+  <div class="dos">
+    <section class="tarjeta sistema bov">
+      <div class="cab"><h2><span class="icono"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7c1 2 2.5 3 4 3h8c1.5 0 3-1 4-3"/><path d="M7 10v4a5 5 0 0 0 10 0v-4"/><circle cx="10" cy="14" r=".6" fill="currentColor"/><circle cx="14" cy="14" r=".6" fill="currentColor"/></svg></span>Comedero bovino</h2><span class="sub">ESP32 #1</span></div>
+      <div class="ilus"><svg viewBox="0 0 520 230" width="100%" role="img" aria-label="Esquema del comedero bovino: lector RFID, tolva con sensor ultrasónico y compuerta, plato sobre báscula y bebedero con flotador y bomba">
+  <rect x="0" y="196" width="520" height="34" fill="#E3EBDD"/>
+  <!-- RFID -->
+  <rect x="22" y="104" width="26" height="92" rx="4" fill="#FFFFFF" stroke="#8C8577" stroke-width="2"/>
+  <rect x="26" y="112" width="18" height="16" rx="2" fill="#2E7D4F"/>
+  <path d="M52 118a10 10 0 0 1 0 12M58 112a18 18 0 0 1 0 24" fill="none" stroke="#2E7D4F" stroke-width="2" stroke-linecap="round"/>
+  <text x="35" y="96" text-anchor="middle" font-size="11" fill="#5B6560">RFID</text>
+  <g transform="translate(74,150) scale(0.62)">
+  <rect x="0" y="0" width="74" height="38" rx="14" fill="#FFFFFF" stroke="#3A423E" stroke-width="2.5"/>
+  <path d="M14 4c8 2 10 12 3 18-5 4-12 2-13-4" fill="#3A423E"/>
+  <path d="M46 8c6-2 12 2 11 9-1 6-8 7-12 3" fill="#3A423E"/>
+  <rect x="8" y="34" width="8" height="20" rx="3" fill="#3A423E"/><rect x="22" y="34" width="8" height="20" rx="3" fill="#3A423E"/>
+  <rect x="48" y="34" width="8" height="20" rx="3" fill="#3A423E"/><rect x="60" y="34" width="8" height="20" rx="3" fill="#3A423E"/>
+  <rect x="64" y="-14" width="30" height="30" rx="11" fill="#FFFFFF" stroke="#3A423E" stroke-width="2.5"/>
+  <rect x="70" y="4" width="26" height="14" rx="7" fill="#F2C9C0" stroke="#3A423E" stroke-width="2"/>
+  <circle cx="76" cy="-3" r="2.3" fill="#3A423E"/><circle cx="87" cy="-3" r="2.3" fill="#3A423E"/>
+  <path d="M66 -12l-6-8M92 -12l6-8" stroke="#3A423E" stroke-width="3" stroke-linecap="round"/>
+  <path d="M0 10c-8 4-10 14-6 22" fill="none" stroke="#3A423E" stroke-width="2.5" stroke-linecap="round"/>
+</g>
+  <!-- tolva -->
+  <rect x="196" y="24" width="48" height="96" rx="9" fill="#FFFFFF" stroke="#8C8577" stroke-width="2"/>
+  <rect x="199" y="62" width="42" height="55" rx="6" fill="#D9B44A"/>
+  <rect x="204" y="10" width="32" height="12" rx="3" fill="#2F6FA3"/>
+  <circle cx="213" cy="16" r="3.5" fill="#FFFFFF"/><circle cx="227" cy="16" r="3.5" fill="#FFFFFF"/>
+  <path d="M220 24v30" stroke="#2F6FA3" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <text x="252" y="20" font-size="11" fill="#5B6560">ultrasónico</text>
+  <path d="M200 120h40l-8 16h-24z" fill="#FFFFFF" stroke="#8C8577" stroke-width="2"/>
+  <rect x="246" y="124" width="18" height="12" rx="2" fill="#5B6560"/>
+  <text x="270" y="134" font-size="11" fill="#5B6560">servo (compuerta)</text>
+  <circle cx="220" cy="148" r="2" fill="#D9B44A"/><circle cx="216" cy="156" r="2" fill="#D9B44A"/><circle cx="223" cy="162" r="2" fill="#D9B44A"/>
+  <!-- plato y bascula -->
+  <path d="M184 176c4-10 68-10 72 0z" fill="#FBF3E2" stroke="#8C8577" stroke-width="2"/>
+  <ellipse cx="220" cy="172" rx="16" ry="3" fill="#D9B44A"/>
+  <rect x="178" y="176" width="84" height="10" rx="3" fill="#8C8577"/>
+  <rect x="190" y="186" width="60" height="10" rx="2" fill="#B9B3A6"/>
+  <text x="220" y="214" text-anchor="middle" font-size="11" fill="#5B6560">báscula (HX711)</text>
+  <!-- ESP32 -->
+  <rect x="300" y="60" width="74" height="44" rx="6" fill="#1F5A3A"/>
+  <text x="337" y="87" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">ESP32</text>
+  <path d="M322 54a22 22 0 0 1 30 0" fill="none" stroke="#2E7D4F" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- bebedero -->
+  <rect x="404" y="140" width="96" height="46" rx="8" fill="#FFFFFF" stroke="#8C8577" stroke-width="2"/>
+  <rect x="408" y="156" width="88" height="26" rx="5" fill="#2F6FA3" opacity=".7"/>
+  <rect x="470" y="150" width="14" height="8" rx="3" fill="#F2C94C" stroke="#8C8577"/>
+  <text x="432" y="134" text-anchor="middle" font-size="11" fill="#5B6560">flotador</text>
+  <rect x="404" y="70" width="40" height="30" rx="4" fill="#FFFFFF" stroke="#8C8577" stroke-width="2"/>
+  <text x="424" y="90" text-anchor="middle" font-size="10" fill="#5B6560">relé</text>
+  <rect x="456" y="76" width="30" height="22" rx="5" fill="#2F6FA3"/>
+  <text x="471" y="68" text-anchor="middle" font-size="11" fill="#5B6560">bomba</text>
+  <path d="M471 98v42" stroke="#2F6FA3" stroke-width="3"/>
+  <text x="452" y="214" text-anchor="middle" font-size="11" fill="#5B6560">bebedero</text>
+</svg></div>
+      <ol class="pasos">
+        <li><b>La vaca se identifica.</b> Acerca su sticker al lector RFID y el ESP32 busca su nombre en la lista.</li>
+        <li><b>Se revisa si puede comer.</b> Si comió hace menos de 30 s o el plato ya tiene 60 g, no se sirve.</li>
+        <li><b>Se sirve y se pesa.</b> Un servo abre la compuerta de la tolva dos veces y la báscula pesa el plato antes y después.</li>
+        <li><b>Se vigila la tolva.</b> El ultrasónico mide el nivel; si no cae maíz, la tolva queda marcada como vacía y la compuerta se bloquea.</li>
+        <li><b>El bebedero se llena solo.</b> Si el flotador baja, el relé enciende la bomba; se apaga al llenarse o a los 15 s por seguridad.</li>
+      </ol>
+      <div class="piezas"><span class="pieza">ESP32</span><span class="pieza">Lector RFID RC522</span><span class="pieza">Celda de carga + HX711</span><span class="pieza">Ultrasónico HC-SR04</span><span class="pieza">Servo MG90S</span><span class="pieza">Flotador</span><span class="pieza">Relé + mini bomba</span></div>
+      <div class="reglas"><div class="regla"><b>30 s</b><span>entre raciones de una vaca</span></div><div class="regla"><b>60 g</b><span>plato lleno</span></div><div class="regla"><b>15 s</b><span>máximo de la bomba</span></div></div>
+    </section>
+    <section class="tarjeta sistema avi">
+      <div class="cab"><h2><span class="icono"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3c-4 0-7 6-7 10.5A7 7 0 0 0 12 21a7 7 0 0 0 7-7.5C19 9 16 3 12 3z"/></svg></span>Galpón avícola</h2><span class="sub">ESP32 #2</span></div>
+      <div class="ilus"><svg viewBox="0 0 520 230" width="100%" role="img" aria-label="Esquema del galpón: compuerta con servo, pulsador, barra LED, sensor de luz y rampa de huevos con sensor infrarrojo">
+  <rect x="0" y="196" width="520" height="34" fill="#E3EBDD"/>
+  <!-- casa -->
+  <path d="M40 76 L190 18 L340 76 Z" fill="#B5523B"/>
+  <rect x="58" y="74" width="264" height="122" rx="4" fill="#FFFFFF" stroke="#8C8577" stroke-width="2"/>
+  <rect x="74" y="84" width="232" height="8" rx="4" fill="#F2C94C"/>
+  <circle cx="90" cy="88" r="10" fill="#F2C94C" opacity=".35"/><circle cx="190" cy="88" r="10" fill="#F2C94C" opacity=".35"/><circle cx="290" cy="88" r="10" fill="#F2C94C" opacity=".35"/>
+  <text x="190" y="110" text-anchor="middle" font-size="11" fill="#5B6560">barra LED</text>
+  <g transform="translate(90,150) scale(1)">
+  <path d="M4 16c0-10 8-16 18-14 6 1 10 6 10 12 0 9-7 15-16 15C9 29 4 24 4 16z" fill="#FFFFFF" stroke="#3A423E" stroke-width="2.2"/>
+  <path d="M26 2c1-3 4-4 6-2" stroke="#C0392B" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M32 9l6 2-6 2z" fill="#E0A526"/>
+  <circle cx="28" cy="8" r="1.6" fill="#3A423E"/>
+  <path d="M12 14c3 4 8 5 12 3" fill="none" stroke="#3A423E" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M14 29v5M20 29v5" stroke="#E0A526" stroke-width="2.2" stroke-linecap="round"/>
+</g>
+  <g transform="translate(150,154) scale(0.9)">
+  <path d="M4 16c0-10 8-16 18-14 6 1 10 6 10 12 0 9-7 15-16 15C9 29 4 24 4 16z" fill="#FFFFFF" stroke="#3A423E" stroke-width="2.2"/>
+  <path d="M26 2c1-3 4-4 6-2" stroke="#C0392B" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M32 9l6 2-6 2z" fill="#E0A526"/>
+  <circle cx="28" cy="8" r="1.6" fill="#3A423E"/>
+  <path d="M12 14c3 4 8 5 12 3" fill="none" stroke="#3A423E" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M14 29v5M20 29v5" stroke="#E0A526" stroke-width="2.2" stroke-linecap="round"/>
+</g>
+  <!-- comedero galpon -->
+  <rect x="226" y="118" width="34" height="46" rx="6" fill="#FFFFFF" stroke="#8C8577" stroke-width="2"/>
+  <rect x="229" y="134" width="28" height="28" rx="4" fill="#E8D49A"/>
+  <rect x="264" y="148" width="16" height="10" rx="2" fill="#5B6560"/>
+  <path d="M220 182h46l-6 12h-34z" fill="#FBF3E2" stroke="#8C8577" stroke-width="2"/>
+  <text x="243" y="112" text-anchor="middle" font-size="11" fill="#5B6560">servo</text>
+  <!-- sensor de luz y sol -->
+  <circle cx="404" cy="34" r="16" fill="#F2D27A"/>
+  <path d="M404 8v-6M430 34h6M422 16l4-4M386 16l-4-4" stroke="#E0A526" stroke-width="2.5" stroke-linecap="round"/>
+  <rect x="330" y="50" width="22" height="14" rx="3" fill="#5B6560"/>
+  <text x="341" y="44" text-anchor="middle" font-size="11" fill="#5B6560">luz</text>
+  <!-- rampa huevos -->
+  <path d="M352 150 L470 186" stroke="#8C8577" stroke-width="5" stroke-linecap="round"/>
+  <ellipse cx="380" cy="150" rx="7" ry="9" fill="#FBF3E2" stroke="#C9A55A" stroke-width="1.5"/>
+  <ellipse cx="420" cy="162" rx="7" ry="9" fill="#FBF3E2" stroke="#C9A55A" stroke-width="1.5"/>
+  <rect x="436" y="140" width="22" height="14" rx="3" fill="#2F6FA3"/>
+  <path d="M447 154v14" stroke="#C0392B" stroke-width="2" stroke-dasharray="3 2"/>
+  <text x="463" y="151" font-size="11" fill="#5B6560">infrarrojo</text>
+  <rect x="470" y="180" width="34" height="16" rx="4" fill="#F3EEE2" stroke="#8C8577" stroke-width="2"/>
+  <!-- ESP32 y pulsador -->
+  <rect x="352" y="80" width="74" height="40" rx="6" fill="#1F5A3A"/>
+  <text x="389" y="105" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">ESP32</text>
+  <rect x="444" y="84" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#8C8577" stroke-width="2"/>
+  <circle cx="457" cy="97" r="7" fill="#B5523B"/>
+  <text x="457" y="124" text-anchor="middle" font-size="11" fill="#5B6560">pulsador</text>
+</svg></div>
+      <ol class="pasos">
+        <li><b>Ración por horario.</b> Cada 2 minutos (en la maqueta) el servo abre la compuerta en pulsos cortos para que no se desborde.</li>
+        <li><b>Ración manual.</b> El pulsador sirve una ración extra; espera 3 s para evitar raciones seguidas.</li>
+        <li><b>Conteo de huevos.</b> El sensor infrarrojo cuenta cada huevo que baja por la rampa.</li>
+        <li><b>Luz del galpón.</b> Cuando el sensor no detecta luz natural, la barra LED se enciende subiendo el brillo poco a poco y se apaga cuando vuelve la luz.</li>
+      </ol>
+      <div class="piezas"><span class="pieza">ESP32</span><span class="pieza">Servo MG90S</span><span class="pieza">Pulsador</span><span class="pieza">Infrarrojo FC-51</span><span class="pieza">Sensor de luz</span><span class="pieza">Barra LED WS2812B</span></div>
+      <div class="reglas"><div class="regla"><b>2 min</b><span>entre raciones automáticas</span></div><div class="regla"><b>≈20 g</b><span>por ración</span></div><div class="regla"><b>3 s</b><span>luz estable para encender</span></div></div>
+    </section>
+  </div>
+  <section class="tarjeta bloque">
+    <div class="cab"><h2>De la maqueta a los datos</h2></div>
+    <div class="tres texto">
+      <div><b>Cada acción es un registro.</b> Una visita al comedero, una lectura de la tolva, un llenado del bebedero, una ración o un huevo quedan con su fecha y hora.</div>
+      <div><b>Un año simulado.</b> Con esas mismas reglas simulamos 12 meses de una granja más grande: 5 comederos, 100 galpones y 1 millón de registros por módulo.</div>
+      <div><b>Errores reales.</b> Incluimos los fallos típicos de un sensor: duplicados, pesos imposibles, distancias fuera de rango y fechas en el futuro, para que el ETL los detecte.</div>
+    </div>
+  </section>
+</section>
+
+<!-- =============================== EN VIVO =============================== -->
+<section class="pagina" id="p-en-vivo">
+  <div class="vivo-cab">
+    <div class="encab">
+      <div class="antetitulo">En vivo</div>
+      <h2>Lo que pasa ahora en la maqueta</h2>
+      <p>Los dos ESP32 envían sus datos por WiFi cada vez que pasa algo y su estado completo cada 2 segundos.</p>
+    </div>
+    <div class="vivo">
+      <span class="chip off" id="chip-bov"><span class="punto"></span><span>Bovino</span></span>
+      <span class="chip off" id="chip-avi"><span class="punto"></span><span>Avícola</span></span>
+      <span class="reloj" id="reloj">--:--:--</span>
+    </div>
+  </div>
+<div class="rejilla">
+    <!-- ======================= BOVINO ======================= -->
+    <section class="tarjeta bov" aria-label="Comedero bovino">
+      <div class="cab">
+        <h2><span class="icono"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7c1 2 2.5 3 4 3h8c1.5 0 3-1 4-3"/><path d="M7 10v4a5 5 0 0 0 10 0v-4"/><circle cx="10" cy="14" r=".6" fill="currentColor"/><circle cx="14" cy="14" r=".6" fill="currentColor"/></svg></span>Comedero bovino</h2>
+        <span class="sub" id="bov-contacto">sin datos</span>
+      </div>
+      <div class="aviso" id="bov-aviso"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span id="bov-aviso-txt"></span></div>
+      <div id="bov-cuerpo"><div class="espera">Esperando datos del ESP32 del comedero…</div></div>
+    </section>
+
+    <!-- ======================= AVICOLA ======================= -->
+    <section class="tarjeta avi" aria-label="Galpón">
+      <div class="cab">
+        <h2><span class="icono"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3c-4 0-7 6-7 10.5A7 7 0 0 0 12 21a7 7 0 0 0 7-7.5C19 9 16 3 12 3z"/></svg></span>Galpón</h2>
+        <span class="sub" id="avi-contacto">sin datos</span>
+      </div>
+      <div id="avi-cuerpo"><div class="espera">Esperando datos del ESP32 del galpón…</div></div>
+    </section>
+  </div>
+
+  <section class="tarjeta actividad" aria-label="Actividad reciente">
+    <div class="cab"><h2>Actividad reciente</h2><span class="sub">se actualiza cada segundo</span></div>
+    <ul class="lista" id="lista"><li class="vacio">Todavía no hay eventos. Acerquen un sticker al lector o esperen la ración del galpón.</li></ul>
+  </section>
+
+</section>
+
+<!-- =============================== BASES =============================== -->
+<section class="pagina" id="p-bases">
+  <div class="encab">
+    <div class="antetitulo">Paso 2 · Bases de datos relacionales</div>
+    <h2>Dos bases separadas, un millón de registros cada una</h2>
+    <p>Cada módulo tiene su propia base en SQL Server. Guardan los registros tal como llegarían de los sensores, con sus errores, para que el proceso ETL los limpie después.</p>
+  </div>
+  <div class="dos">
+    <section class="tarjeta bov">
+      <div class="cab"><h2><span class="icono"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7c1 2 2.5 3 4 3h8c1.5 0 3-1 4-3"/><path d="M7 10v4a5 5 0 0 0 10 0v-4"/><circle cx="10" cy="14" r=".6" fill="currentColor"/><circle cx="14" cy="14" r=".6" fill="currentColor"/></svg></span>GranjaBovinos</h2><span class="sub">5 tablas</span></div>
+      <table class="cifra-tabla">
+        <tr><th>Tabla</th><th>Qué guarda</th><th style="text-align:right">Registros</th></tr>
+        <tr><td>AlimentacionBovina</td><td>cada visita de una vaca al comedero</td><td class="n">800.000</td></tr>
+        <tr><td>NivelTolva</td><td>lecturas del ultrasónico</td><td class="n">100.000</td></tr>
+        <tr><td>LlenadoBebedero</td><td>cada llenado del bebedero</td><td class="n">100.000</td></tr>
+        <tr><td>Vaca · Comedero</td><td>catálogos (RFID, nombre, raza)</td><td class="n">–</td></tr>
+      </table>
+    </section>
+    <section class="tarjeta avi">
+      <div class="cab"><h2><span class="icono"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3c-4 0-7 6-7 10.5A7 7 0 0 0 12 21a7 7 0 0 0 7-7.5C19 9 16 3 12 3z"/></svg></span>GranjaAvicola</h2><span class="sub">3 tablas</span></div>
+      <table class="cifra-tabla">
+        <tr><th>Tabla</th><th>Qué guarda</th><th style="text-align:right">Registros</th></tr>
+        <tr><td>Huevo</td><td>cada huevo recogido</td><td class="n">600.000</td></tr>
+        <tr><td>AlimentacionAvicola</td><td>cada ración, por horario o manual</td><td class="n">400.000</td></tr>
+        <tr><td>Galpon</td><td>catálogo de los 100 galpones</td><td class="n">–</td></tr>
+      </table>
+    </section>
+  </div>
+  <div class="dos bloque figuras">
+    <figure class="figura" data-zoom><img src="/img/rel_bov.webp" alt="Modelo relacional de GranjaBovinos" loading="lazy"><figcaption><b>Modelo relacional de GranjaBovinos.</b> Las visitas, lecturas y llenados se relacionan con la vaca y el comedero.</figcaption></figure>
+    <figure class="figura" data-zoom><img src="/img/rel_avi.webp" alt="Modelo relacional de GranjaAvicola" loading="lazy"><figcaption><b>Modelo relacional de GranjaAvicola.</b> Raciones y huevos se relacionan con su galpón.</figcaption></figure>
+  </div>
+  <section class="tarjeta bloque">
+    <div class="cab"><h2>Cómo se generó el millón de registros</h2></div>
+    <div class="tres texto">
+      <div><b>Repetible.</b> Los datos se generan con funciones de SQL Server (HASHBYTES) en lugar de valores al azar: al volver a ejecutar el script salen exactamente los mismos registros.</div>
+      <div><b>Con datos sucios a propósito.</b> Nombres con espacios de más, razas mal escritas, stickers sin registrar, duplicados, pesos y distancias imposibles y fechas en el futuro.</div>
+      <div><b>Con patrones para descubrir.</b> Un comedero con falla en la tolva, una vaca que dejó de comer, temporadas de lluvia y sequía, y ocho galpones con aves viejas.</div>
+    </div>
+  </section>
+</section>
+
+<!-- =============================== ETL =============================== -->
+<section class="pagina" id="p-etl">
+  <div class="encab">
+    <div class="antetitulo">Pasos 3 y 4 · ETL y Data Warehouse</div>
+    <h2>Limpiar, organizar y dejar listo para analizar</h2>
+    <p>Un proyecto de Visual Studio (SSIS) con un paquete por módulo lee la base relacional, separa los registros con errores, busca las llaves de cada dimensión y carga un Data Warehouse con modelo estrella.</p>
+  </div>
+  <figure class="figura" data-zoom><img src="/img/arquitectura.webp" alt="Arquitectura de los dos módulos" loading="lazy"><figcaption><b>Arquitectura.</b> Cada módulo tiene su base, su paquete ETL y su estrella; Power BI lee las dos estrellas.</figcaption></figure>
+
+  <div class="kpis bloque" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+    <div class="kpi"><b>992.325</b><span>registros bovinos limpios, cargados como eventos</span></div>
+    <div class="kpi"><b>994.794</b><span>registros avícolas limpios, resumidos en 36.500 filas galpón × día</span></div>
+    <div class="kpi"><b>12.881</b><span>registros rechazados, guardados con su motivo</span></div>
+    <div class="kpi"><b>0</b><span>diferencias al verificar origen contra destino</span></div>
+  </div>
+
+  <div class="dos">
+    <section class="tarjeta">
+      <div class="cab"><h2>Qué hace el ETL</h2></div>
+      <ol class="pasos">
+        <li><b>Une las fuentes.</b> Visitas, lecturas y llenados (o raciones y huevos) entran a un solo flujo.</li>
+        <li><b>Marca los errores.</b> Una regla asigna el motivo: duplicado, gramos fuera de rango, distancia fuera de rango o fecha en el futuro.</li>
+        <li><b>Separa.</b> Los registros con motivo van a la tabla de rechazos; los demás siguen.</li>
+        <li><b>Corrige y busca llaves.</b> Quita espacios, unifica razas mal escritas y busca la llave de cada dimensión; un sticker desconocido queda como vaca «Desconocida».</li>
+        <li><b>Carga la tabla de hechos.</b> En el avícola, antes suma raciones y huevos por galpón y día.</li>
+      </ol>
+    </section>
+    <section class="tarjeta">
+      <div class="cab"><h2>Registros rechazados por motivo</h2><span class="sub">12.881 en total</span></div>
+      <table class="cifra-tabla">
+        <tr><th>Motivo</th><th style="text-align:right">Registros</th><th style="width:40%"></th></tr>
+        <tr><td>Duplicado</td><td class="n">9.959</td><td><div class="barrita" style="width:100%"></div></td></tr>
+        <tr><td>Gramos fuera de rango</td><td class="n">1.492</td><td><div class="barrita" style="width:15%"></div></td></tr>
+        <tr><td>Distancia fuera de rango</td><td class="n">1.059</td><td><div class="barrita" style="width:10.6%"></div></td></tr>
+        <tr><td>Fecha en el futuro</td><td class="n">371</td><td><div class="barrita" style="width:3.7%"></div></td></tr>
+      </table>
+      <p class="nota-suave">Bovinos: 7.675 rechazados · Avícola: 5.206. El 99,4 % de los registros pasó la limpieza.</p>
+    </section>
+  </div>
+
+  <div class="dos bloque figuras">
+    <figure class="figura" data-zoom><img src="/img/df_bovino.webp" alt="Flujo de datos del ETL bovino" loading="lazy"><figcaption><b>Flujo de datos bovino.</b> Tres fuentes, limpieza, cinco búsquedas de llaves y carga de FactEventoBovino.</figcaption></figure>
+    <figure class="figura" data-zoom><img src="/img/df_avicola.webp" alt="Flujo de datos del ETL avícola" loading="lazy"><figcaption><b>Flujo de datos avícola.</b> Raciones y huevos se limpian y se suman por galpón y día.</figcaption></figure>
+  </div>
+
+  <div class="dos bloque figuras">
+    <figure class="figura oscura recorte" data-zoom><img src="/img/vs_cf_bov.webp" alt="Control Flow del paquete bovino en Visual Studio" loading="lazy"><figcaption><b>Visual Studio:</b> paquete ETL_Bovinos ejecutado sin errores.</figcaption></figure>
+    <figure class="figura oscura recorte" data-zoom><img src="/img/vs_cf_avi.webp" alt="Control Flow del paquete avícola en Visual Studio" loading="lazy"><figcaption><b>Visual Studio:</b> paquete ETL_Avicola ejecutado sin errores.</figcaption></figure>
+  </div>
+
+  <section class="tarjeta bloque">
+    <div class="cab"><h2>Los dos Data Warehouse</h2><span class="sub">diagramas de SQL Server Management Studio</span></div>
+    <div class="dos figuras">
+      <figure class="figura" data-zoom style="border:none;padding:0"><img src="/img/ssms_estrella_bov.webp" alt="Diagrama del modelo estrella GranjaBovinosDW en SQL Server Management Studio" loading="lazy"><figcaption><b>GranjaBovinosDW en SQL Server.</b> FactEventoBovino en el centro con sus siete dimensiones. Cada fila es un evento: una visita, una lectura de tolva o un llenado.</figcaption></figure>
+      <figure class="figura" data-zoom style="border:none;padding:0"><img src="/img/ssms_estrella_avi.webp" alt="Diagrama del modelo estrella GranjaAvicolaDW en SQL Server Management Studio" loading="lazy"><figcaption><b>GranjaAvicolaDW en SQL Server.</b> FactGalponDiario con DimFecha y DimGalpon. Cada fila es un galpón en un día, con sus raciones y huevos.</figcaption></figure>
+    </div>
+  </section>
+</section>
+
+<!-- =============================== DASHBOARD =============================== -->
+<section class="pagina" id="p-dashboard">
+  <div class="encab">
+    <div class="antetitulo">Paso 5 · Dashboard en Power BI</div>
+    <h2>Del dato a la decisión</h2>
+    <p>Cinco páginas conectadas a los dos Data Warehouse. Es interactivo: cambien de página con las flechas de abajo, usen los filtros o hagan clic sobre una barra para filtrar las demás gráficas.</p>
+  </div>
+  <div class="marco">
+    <iframe id="pbi" title="Dashboard_Granja" data-src="https://app.powerbi.com/view?r=eyJrIjoiOWEwMTVkNjgtODJjMy00ZDM0LTg3YWItMjljYTZjMjkyNWM5IiwidCI6IjA3ZGE2N2EwLTFmNDMtNGU4Yy05NzdmLTVmODhiNjQ3MGVlNiIsImMiOjR9" allowfullscreen loading="lazy"></iframe>
+  </div>
+  <p class="nota-suave"><a href="https://app.powerbi.com/view?r=eyJrIjoiOWEwMTVkNjgtODJjMy00ZDM0LTg3YWItMjljYTZjMjkyNWM5IiwidCI6IjA3ZGE2N2EwLTFmNDMtNGU4Yy05NzdmLTVmODhiNjQ3MGVlNiIsImMiOjR9" target="_blank" rel="noopener" style="color:var(--verde)">Abrir el dashboard en pantalla completa ↗</a></p>
+
+  <div class="paginas-pbi bloque">
+    <div class="pbi"><div class="n">Página 1</div><b>Resumen</b><p>Los 5 indicadores generales, la postura y el agua durante el año, los dos problemas y las decisiones.</p></div>
+    <div class="pbi"><div class="n">Página 2</div><b>Bovinos · Alimentación</b><p>Cómo terminan las visitas, la ración por raza, la falla del comedero 5 y la vaca que dejó de comer.</p></div>
+    <div class="pbi"><div class="n">Página 3</div><b>Bovinos · Agua y tolva</b><p>Llenados por mes y por hora, y las lecturas de tolva vacía de cada comedero.</p></div>
+    <div class="pbi"><div class="n">Página 4</div><b>Avícola · Postura</b><p>Postura por mes y por galpón, la ración manual y el cruce tamaño × grupo × temporada.</p></div>
+    <div class="pbi"><div class="n">Página 5</div><b>Calidad de datos</b><p>Qué descartó el ETL, por qué y en qué módulo.</p></div>
+  </div>
+
+  <div class="dos bloque">
+    <section class="tarjeta">
+      <div class="cab"><h2>Cinco conocimientos</h2><span class="sub">con su limitación</span></div>
+      <div class="hallazgo"><div class="num" style="background:var(--rojo-claro);color:#8A3523">1</div><div><b>El comedero 5 tiene una falla de tolva</b><p>9,9 % de visitas con tolva vacía frente a 2 % en los demás, igual todos los meses, y el doble de lecturas vacías del ultrasónico.</p><span class="lim">Limitación: no distingue si falla la tolva o el sensor; hay que revisarlo en sitio.</span></div></div>
+      <div class="hallazgo"><div class="num" style="background:var(--ocre-claro);color:#7A5208">2</div><div><b>Canela dejó de comer dos semanas</b><p>Cero raciones del 2 al 15 de marzo de 2026 y luego volvió a su nivel normal.</p><span class="lim">Limitación: los datos muestran que no comió, no la causa.</span></div></div>
+      <div class="hallazgo"><div class="num" style="background:var(--verde-claro);color:var(--verde-osc)">3</div><div><b>La ración depende de la raza</b><p>Holstein recibe 31,3 g por ración y Jersey 20,0 g: 56 % más.</p><span class="lim">Limitación: gramos de la maqueta, no de vacas reales.</span></div></div>
+      <div class="hallazgo"><div class="num" style="background:var(--azul-claro);color:#1F4E7A">4</div><div><b>La temporada mueve la postura y el agua</b><p>Postura de 70 % en meses secos y 49 % en lluvias; en los meses secos los bebederos se llenan casi el doble.</p><span class="lim">Limitación: la temporada se asignó por mes, sin datos de lluvia medidos.</span></div></div>
+      <div class="hallazgo"><div class="num" style="background:var(--rojo-claro);color:#8A3523">5</div><div><b>Ocho galpones ponen la mitad</b><p>Los galpones 13, 22, 31, 45, 54, 63, 72 y 81 tienen 33,8 % de postura frente a 62,1 %. La ración manual se asocia con más postura, pero no es la causa: los galpones viejos no la reciben.</p><span class="lim">Limitación: no se registra la edad de las aves.</span></div></div>
+    </section>
+    <div>
+      <section class="tarjeta">
+        <div class="cab"><h2>Dos decisiones</h2></div>
+        <div class="decision"><b>1. Reparar la tolva del comedero 5</b><p>Revisar la compuerta y el sensor ultrasónico. Mientras tanto, las vacas de ese comedero se quedan sin ración en una de cada diez visitas.</p></div>
+        <div class="decision" style="margin-top:12px"><b>2. Renovar los ocho galpones de baja postura</b><p>Revisar la salud y la edad de las aves de esos galpones y programar el cambio de lote. Dar más ración manual no resolvería el problema.</p></div>
+      </section>
+      <section class="tarjeta bloque">
+        <div class="cab"><h2>Análisis de la Etapa 4</h2></div>
+        <table class="cifra-tabla">
+          <tr><th>Análisis</th><th>Dónde está</th></tr>
+          <tr><td>5 indicadores generales</td><td>Página 1, tarjetas</td></tr>
+          <tr><td>Univariado</td><td>visitas por resultado · llenados por hora · postura por mes</td></tr>
+          <tr><td>Bivariado</td><td>gramos por raza · tolva vacía por comedero · postura por tipo de día</td></tr>
+          <tr><td>Multivariado</td><td>tamaño × grupo × temporada</td></tr>
+        </table>
+      </section>
+    </div>
+  </div>
+</section>
+
+<footer>Granja sostenible · Big Data, Grupo 701N · Universidad de Cundinamarca</footer>
+</main>
+
+<div class="visor" id="visor" role="dialog" aria-label="Imagen ampliada"><img alt=""></div>
+
+<script>
+
+const URL_ESTADO = "/api/estado";
+let datos = null, desfase = 0, vistos = new Set(), primera = true, ultVisitaId = null, ultHuevos = null, ultRacionId = null;
+const iconoComedero = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 11h18l-2 8H5z"/><path d="M8 11c0-2 1.5-4 4-4s4 2 4 4"/></svg>`;
+
+const $ = id => document.getElementById(id);
+const num = (v, d = 0) => (v ?? 0).toLocaleString("es-CO", {minimumFractionDigits: d, maximumFractionDigits: d});
+const ahoraSrv = () => Date.now() / 1000 - desfase;
+function hace(ts) {
+  const s = Math.max(0, Math.round(ahoraSrv() - ts));
+  if (s < 5) return "ahora";
+  if (s < 60) return `hace ${s} s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `hace ${m} min`;
+  return `hace ${Math.floor(m / 60)} h`;
+}
+function iniciales(n) { return (n || "?").trim().split(/\s+/).map(p => p[0]).join("").slice(0, 2).toUpperCase(); }
+
+/* ---------- instrumentos ---------- */
+function tolvaSVG(estado) {
+  const nivel = {LLENA: .82, BAJA: .32, VACIA: 0}[estado];
+  const color = estado === "VACIA" ? "var(--rojo)" : estado === "BAJA" ? "var(--ocre)" : "#C9A23A";
+  const h = 62, y0 = 8, alto = nivel == null ? 0 : h * nivel;
+  return `<svg width="58" height="78" viewBox="0 0 58 78" aria-hidden="true">
+    <path d="M10 6h38v46l-12 16H22L10 52z" fill="#FBF9F4" stroke="#D5CFC1" stroke-width="1.5"/>
+    <clipPath id="ct"><path d="M10 6h38v46l-12 16H22L10 52z"/></clipPath>
+    <rect class="anim" clip-path="url(#ct)" x="10" y="${y0 + h - alto}" width="38" height="${alto}" fill="${color}" opacity=".85"/>
+    ${nivel == null ? `<text x="29" y="40" text-anchor="middle" font-size="9" fill="#8A918C">sin dato</text>` : ""}
+  </svg>`;
+}
+function platoSVG(g, max) {
+  const p = Math.max(0, Math.min(1, g / max)), w = 60;
+  return `<svg width="64" height="78" viewBox="0 0 64 78" aria-hidden="true">
+    <rect x="2" y="30" width="${w}" height="10" rx="5" fill="#EFEDE7"/>
+    <rect class="anim" x="2" y="30" width="${Math.max(p * w, p > 0 ? 6 : 0)}" height="10" rx="5" fill="var(--verde)"/>
+    <path d="M6 56h52l-6 10H12z" fill="#F3F0E9" stroke="#D5CFC1"/>
+    <ellipse cx="32" cy="56" rx="${8 + 18 * p}" ry="${2 + 3 * p}" fill="#D9B44A" opacity="${p > 0 ? .9 : 0}"/>
+  </svg>`;
+}
+function bebederoSVG(estado, bomba) {
+  const lleno = estado === "CON AGUA", vacio = estado === "VACIO";
+  const alto = lleno ? 30 : vacio ? 5 : 0;
+  return `<svg width="64" height="78" viewBox="0 0 64 78" aria-hidden="true">
+    <path d="M8 30h48v30a8 8 0 0 1-8 8H16a8 8 0 0 1-8-8z" fill="#FBF9F4" stroke="#D5CFC1" stroke-width="1.5"/>
+    <clipPath id="cb"><path d="M8 30h48v30a8 8 0 0 1-8 8H16a8 8 0 0 1-8-8z"/></clipPath>
+    <rect class="anim" clip-path="url(#cb)" x="8" y="${68 - alto}" width="48" height="${alto}" fill="var(--azul)" opacity=".75"/>
+    ${bomba ? `<path d="M32 6c-4 6-6 9-6 12a6 6 0 0 0 12 0c0-3-2-6-6-12z" fill="var(--azul)"><animate attributeName="opacity" values="1;.35;1" dur="1s" repeatCount="indefinite"/></path>` : ""}
+  </svg>`;
+}
+function anilloSVG(fraccion, texto) {
+  const r = 34, c = 2 * Math.PI * r, off = c * (1 - Math.max(0, Math.min(1, fraccion)));
+  return `<svg width="78" height="78" viewBox="0 0 92 92" aria-hidden="true">
+    <circle cx="46" cy="46" r="${r}" fill="none" stroke="#F1ECE0" stroke-width="8"/>
+    <circle cx="46" cy="46" r="${r}" fill="none" stroke="var(--ocre)" stroke-width="8" stroke-linecap="round"
+      stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 46 46)" style="transition:stroke-dashoffset .3s linear"/>
+    <text x="46" y="51" text-anchor="middle" font-size="17" font-weight="600" fill="#1F2A24" id="anillo-txt">${texto}</text>
+  </svg>`;
+}
+function focoSVG(on, brillo) {
+  const a = on ? .25 + .75 * brillo : 0;
+  return `<svg width="62" height="78" viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="10" r="8" fill="#F2C94C" opacity="${(a * .35).toFixed(2)}"/>
+    <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"
+      fill="${on ? "#F2C94C" : "#F3F0E9"}" stroke="${on ? "#B07812" : "#B9B3A6"}" stroke-width="1.4" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+/* ---------- textos ---------- */
+const RES = {
+  "Servida": ["Ración servida", "e-ok"], "Ya comio": ["Ya había comido", "e-neutro"],
+  "Plato lleno": ["Plato lleno", "e-medio"], "Tolva vacia": ["Tolva vacía", "e-mal"],
+  "No registrada": ["Sin registrar", "e-neutro"]
+};
+const TOLVA = {LLENA: "Llena", BAJA: "Baja", VACIA: "Vacía", "SIN CALIBRAR": "Sin calibrar", MIDIENDO: "Midiendo…"};
+function textoEvento(e) {
+  switch (e.tipo) {
+    case "visita":
+      if (e.resultado === "Servida") return `<b>${e.vaca}</b> comió ${num(e.gramos, 1)} g`;
+      if (e.resultado === "Ya comio") return `<b>${e.vaca}</b> volvió, pero ya había comido`;
+      if (e.resultado === "Plato lleno") return `<b>${e.vaca}</b>: el plato estaba lleno, no se sirvió`;
+      if (e.resultado === "Tolva vacia") return `<b>${e.vaca}</b>: no cayó maíz, la tolva está vacía`;
+      return `Sticker sin registrar <span style="color:var(--tenue)">${e.codigo || ""}</span>`;
+    case "tolva": return `Tolva: <b>${TOLVA[e.estado] || e.estado}</b>`;
+    case "bebedero": return e.estado === "VACIO" ? "Bebedero vacío" : e.estado === "CON AGUA" ? "Bebedero con agua" : `Bebedero: ${e.estado.toLowerCase()}`;
+    case "bomba": return e.estado === "ENCENDIDA" ? "Bomba encendida, llenando el bebedero" : "Bomba apagada";
+    case "llenado": return `Bebedero lleno en <b>${num(parseFloat(e.segundos), 1)} s</b>`;
+    case "alerta": return `<span style="color:var(--rojo)"><b>Alerta:</b> ${e.texto}</span>`;
+    case "racion": return `Ración <b>#${e.numero}</b> servida ${e.origen === "horario" ? "por horario" : e.origen === "pulsador" ? "con el pulsador" : "manual"}`;
+    case "huevo": return e.total === 0 ? "Contador de huevos reiniciado" : `Huevo recogido · total <b>${e.total}</b>`;
+    case "luces": return e.estado === "ENCENDIDAS" ? "Luces encendidas: no hay luz natural" : "Luces apagadas: volvió la luz natural";
+    default: return e.tipo;
+  }
+}
+
+/* ---------- pintar ---------- */
+function pintarBovino(b) {
+  const est = b.estado;
+  $("bov-contacto").textContent = b.hace_s == null ? "sin datos" : b.en_linea ? "en línea" : `último dato ${hace(ahoraSrv() - b.hace_s)}`;
+  if (!est) return;
+  const visita = b.eventos.find(e => e.tipo === "visita");
+  // aviso
+  let aviso = "";
+  if (est.tolva === "VACIA") aviso = "<b>Tolva vacía.</b> Recarguen maíz: la compuerta queda bloqueada hasta recargar.";
+  else if (est.bomba_bloqueada) aviso = "<b>Bomba bloqueada.</b> El flotador no detecta el llenado; revísenlo.";
+  else if (!est.rfid_ok) aviso = "<b>Lector RFID sin respuesta.</b> Revisen cables y 3,3 V.";
+  $("bov-aviso").classList.toggle("ver", !!aviso);
+  $("bov-aviso-txt").innerHTML = aviso;
+
+  let vHTML;
+  if (visita) {
+    const [t, cls] = RES[visita.resultado] || [visita.resultado, "e-neutro"];
+    vHTML = `<div class="visita${visita.id !== ultVisitaId && !primera ? " destello" : ""}">
+      <div class="avatar">${visita.resultado === "No registrada" ? "?" : iniciales(visita.vaca)}</div>
+      <div><div class="nombre">${visita.resultado === "No registrada" ? "Sticker " + (visita.codigo || "desconocido") : visita.vaca}</div>
+        <div class="detalle"><span class="etiqueta ${cls}">${t}</span><span data-ts="${visita.recibido}">${hace(visita.recibido)}</span></div></div>
+      <div class="gramos"><b>${visita.resultado === "Servida" ? num(visita.gramos, 1) : "–"}</b><span>gramos</span></div></div>`;
+    ultVisitaId = visita.id;
+  } else {
+    vHTML = `<div class="visita"><div class="avatar" style="background:#EFEDE7;color:#8A918C">?</div>
+      <div><div class="nombre" style="color:var(--tinta2)">Sin visitas todavía</div><div class="detalle">Acerquen el sticker de una vaca al lector</div></div></div>`;
+  }
+  const max = est.plato_max_g || 60;
+  $("bov-cuerpo").innerHTML = vHTML + `
+    <div class="instrumentos">
+      <div class="inst"><div class="titulo">Tolva</div>${tolvaSVG(est.tolva)}
+        <div class="valor" style="color:${est.tolva === "VACIA" ? "var(--rojo)" : "inherit"}">${TOLVA[est.tolva] || est.tolva}</div>
+        <div class="nota">${est.distancia_cm > 0 ? num(est.distancia_cm, 1) + " cm al maíz" : "ultrasónico"}</div></div>
+      <div class="inst"><div class="titulo">Plato</div>${platoSVG(est.plato_g, max)}
+        <div class="valor">${est.bascula_ok ? num(est.plato_g, 1) + " g" : "Sin báscula"}</div>
+        <div class="nota">lleno a ${num(max)} g</div></div>
+      <div class="inst"><div class="titulo">Bebedero</div>${bebederoSVG(est.bebedero, est.bomba)}
+        <div class="valor">${est.bebedero === "CON AGUA" ? "Con agua" : est.bebedero === "VACIO" ? "Vacío" : TOLVA[est.bebedero] || est.bebedero}</div>
+        <div class="nota" style="${est.bomba ? "color:var(--azul);font-weight:600" : ""}">${est.bomba ? "bomba encendida" : "bomba apagada"}</div></div>
+    </div>
+    <div class="cifras">
+      <div class="cifra"><b>${num(est.visitas)}</b><span>visitas</span></div>
+      <div class="cifra"><b>${num(est.raciones)}</b><span>raciones</span></div>
+      <div class="cifra"><b>${num(est.gramos_total, 1)}</b><span>gramos servidos</span></div>
+      <div class="cifra"><b>${num(est.llenados)}</b><span>llenados</span></div>
+    </div>`;
+}
+
+function pintarAvicola(a) {
+  const est = a.estado;
+  $("avi-contacto").textContent = a.hace_s == null ? "sin datos" : a.en_linea ? "en línea" : `último dato ${hace(ahoraSrv() - a.hace_s)}`;
+  if (!est) return;
+  const brillo = est.brillo_max ? est.brillo / est.brillo_max : 0;
+  const nuevoHuevo = ultHuevos !== null && est.huevos > ultHuevos;
+  ultHuevos = est.huevos;
+  const racion = a.eventos.find(e => e.tipo === "racion");
+  const origen = {horario: ["Por horario", "e-medio"], pulsador: ["Con el pulsador", "e-ok"], teclado: ["Manual", "e-neutro"]};
+  let hHTML;
+  if (racion) {
+    const [t, cls] = origen[racion.origen] || [racion.origen, "e-neutro"];
+    hHTML = `<div class="visita${racion.id !== ultRacionId && !primera ? " destello-o" : ""}">
+      <div class="avatar" style="background:var(--ocre-claro);color:var(--ocre)">${iconoComedero}</div>
+      <div><div class="nombre">Ración #${racion.numero}</div>
+        <div class="detalle"><span class="etiqueta ${cls}">${t}</span><span data-ts="${racion.recibido}">${hace(racion.recibido)}</span></div></div>
+      <div class="gramos"><b>${num(racion.gramos || est.gramos_racion)}</b><span>gramos aprox.</span></div></div>`;
+    ultRacionId = racion.id;
+  } else {
+    hHTML = `<div class="visita"><div class="avatar" style="background:#EFEDE7;color:#8A918C">${iconoComedero}</div>
+      <div><div class="nombre" style="color:var(--tinta2)">Sin raciones todavía</div><div class="detalle">La primera llega por horario o con el pulsador</div></div></div>`;
+  }
+  $("avi-cuerpo").innerHTML = hHTML + `
+    <div class="instrumentos">
+      <div class="inst"><div class="titulo" id="anillo-estado">Próxima ración</div><div id="anillo">${anilloSVG(0, "--:--")}</div>
+        <div class="valor">Automática</div><div class="nota">cada ${num(est.intervalo_s / 60)} min</div></div>
+      <div class="inst"><div class="titulo">Huevos</div>
+        <svg width="58" height="78" viewBox="0 0 24 28" aria-hidden="true"><path d="M12 3C7.8 3 4.5 9.4 4.5 15.4A7.5 7.5 0 0 0 12 23.4a7.5 7.5 0 0 0 7.5-8C19.5 9.4 16.2 3 12 3z" fill="#FBF3E2" stroke="#C9A55A" stroke-width="1.2"/></svg>
+        <div class="valor grande${nuevoHuevo ? " salto" : ""}">${num(est.huevos)}</div><div class="nota">recogidos</div></div>
+      <div class="inst"><div class="titulo">Luces</div>${focoSVG(est.luces, brillo)}
+        <div class="valor">${est.luces ? "Encendidas" : "Apagadas"}</div>
+        <div class="nota">${est.luces ? `brillo ${num(brillo * 100)} %` : "hay luz natural"}</div></div>
+    </div>
+    <div class="cifras">
+      <div class="cifra"><b>${num(est.raciones)}</b><span>raciones</span></div>
+      <div class="cifra"><b>${num(est.raciones * (est.gramos_racion || 0))}</b><span>gramos aprox.</span></div>
+      <div class="cifra"><b>${num(est.huevos)}</b><span>huevos</span></div>
+      <div class="cifra"><b>${senal(est.rssi)}</b><span>señal WiFi</span></div>
+    </div>`;
+  actualizarAnillo();
+}
+function senal(rssi) {
+  if (rssi == null || rssi === 0) return "–";
+  return rssi > -60 ? "Buena" : rssi > -72 ? "Media" : "Débil";
+}
+function actualizarAnillo() {
+  const est = datos?.avicola?.estado;
+  if (!est || !$("anillo")) return;
+  if (est.compuerta_abierta) {
+    $("anillo").innerHTML = anilloSVG(1, "…");
+    $("anillo-estado").textContent = "Sirviendo…";
+    return;
+  }
+  const falta = Math.max(0, est.proxima_s - (ahoraSrv() - est.recibido));
+  const mm = Math.floor(falta / 60), ss = Math.floor(falta % 60);
+  $("anillo").innerHTML = anilloSVG(1 - falta / est.intervalo_s, `${mm}:${String(ss).padStart(2, "0")}`);
+  $("anillo-estado").textContent = falta <= 0 ? "Sirviendo…" : "Próxima ración";
+}
+
+function pintarLista() {
+  const ev = [...(datos.bovino.eventos || []), ...(datos.avicola.eventos || [])]
+    .sort((x, y) => y.recibido - x.recibido).slice(0, 14);
+  if (!ev.length) return;
+  $("lista").innerHTML = ev.map(e => {
+    const nuevo = !primera && !vistos.has(e.id);
+    return `<li class="${nuevo ? "nuevo" : ""}"><span class="marca-mod" style="background:${e.modulo === "bovino" ? "var(--verde)" : "var(--ocre)"}"></span>
+      <span class="mod">${e.modulo === "bovino" ? "Bovino" : "Galpón"}</span><span>${textoEvento(e)}</span>
+      <span class="cuando" data-ts="${e.recibido}">${hace(e.recibido)}</span></li>`;
+  }).join("");
+  ev.forEach(e => vistos.add(e.id));
+}
+
+function chip(id, m) {
+  const c = $(id);
+  c.classList.toggle("on", !!m.en_linea);
+  c.classList.toggle("off", !m.en_linea);
+}
+
+async function consultar() {
+  try {
+    const r = await fetch(URL_ESTADO, {cache: "no-store"});
+    if (!r.ok) throw new Error(r.status);
+    datos = await r.json();
+    desfase = Date.now() / 1000 - datos.servidor;
+    chip("chip-bov", datos.bovino);
+    chip("chip-avi", datos.avicola);
+    pintarBovino(datos.bovino);
+    pintarAvicola(datos.avicola);
+    pintarLista();
+    primera = false;
+  } catch (err) {
+    $("chip-bov").className = "chip off"; $("chip-avi").className = "chip off";
+  }
+}
+
+function tic() {
+  $("reloj").textContent = new Date().toLocaleTimeString("es-CO", {hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false});
+  document.querySelectorAll("[data-ts]").forEach(el => el.textContent = hace(parseFloat(el.dataset.ts)));
+  actualizarAnillo();
+}
+
+
+
+
+/* ================= navegacion ================= */
+const PAGINAS = ["inicio", "proyecto", "maqueta", "en-vivo", "bases", "etl", "dashboard"];
+let temporizadorVivo = null;
+function mostrar() {
+  let p = location.hash.replace("#", "");
+  if (!PAGINAS.includes(p)) p = "inicio";
+  document.querySelectorAll(".pagina").forEach(s => s.classList.toggle("ver", s.id === "p-" + p));
+  document.querySelectorAll(".menu a").forEach(a => a.classList.toggle("activo", a.dataset.p === p));
+  $("menu").classList.remove("abierto");
+  $("hamb").setAttribute("aria-expanded", "false");
+  window.scrollTo({top: 0, behavior: "instant" in window ? "instant" : "auto"});
+  if (p === "en-vivo") {
+    if (!temporizadorVivo) { consultar(); temporizadorVivo = setInterval(consultar, 1000); }
+  } else if (temporizadorVivo) { clearInterval(temporizadorVivo); temporizadorVivo = null; }
+  if (p === "dashboard") { const f = $("pbi"); if (!f.src) f.src = f.dataset.src; }
+  document.title = (p === "inicio" ? "" : document.querySelector(`.menu a[data-p="${p}"]`).textContent.trim() + " · ") + "Granja sostenible";
+}
+window.addEventListener("hashchange", mostrar);
+$("hamb").addEventListener("click", () => {
+  const abierto = $("menu").classList.toggle("abierto");
+  $("hamb").setAttribute("aria-expanded", abierto);
+});
+document.addEventListener("click", e => {
+  if (!e.target.closest(".menu") && !e.target.closest("#hamb")) $("menu").classList.remove("abierto");
+  const fig = e.target.closest("[data-zoom]");
+  if (fig) { const v = $("visor"); v.querySelector("img").src = fig.querySelector("img").src; v.classList.add("ver"); }
+});
+$("visor").addEventListener("click", () => $("visor").classList.remove("ver"));
+document.addEventListener("keydown", e => { if (e.key === "Escape") $("visor").classList.remove("ver"); });
+setInterval(tic, 500);
+tic();
+mostrar();
+</script>
+</body>
+</html>
